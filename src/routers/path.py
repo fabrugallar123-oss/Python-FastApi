@@ -5,10 +5,23 @@ from fastapi import APIRouter, Depends, HTTPException, Path
 from sqlmodel import Session, select
 from database import get_db
 
-from models.db import Juego, JuegoBase, JuegoRead, JuegoReadConDesarrolladora, Desarrolladora, DesarrolladoraBase, DesarrolladoraReadConJuegos
+from models.db import (
+    Juego,
+    JuegoBase, 
+    JuegoRead, 
+    JuegoReadConDesarrolladora, 
+    Desarrolladora, 
+    DesarrolladoraBase, 
+    DesarrolladoraReadConJuegos,
+    DesarrolladoraRead
+)
 
 
-videojuegos_router = APIRouter(prefix="/juegos", tags=["juegos"])
+videojuegos_router = APIRouter(prefix="/juegos", tags=["juegos"]
+)
+
+desarrolladoras_router = APIRouter(prefix="/desarrolladoras", tags=["desarrolladoras"]
+)
 
 
 @videojuegos_router.get("/", response_model=list[JuegoReadConDesarrolladora])
@@ -88,3 +101,39 @@ async def delete_videojuego(
     db.delete(juego_db)
     db.commit()
     return {"mensaje": f"El videojuego con ID {id} fue eliminado correctamente"}
+
+
+
+#crear DESARROLLADORA
+@desarrolladoras_router.post("/", response_model=DesarrolladoraRead)
+async def post_desarrolladora(
+    desarrolladora: DesarrolladoraBase,
+    db: Session = Depends(get_db)
+):
+    desarrolladora_db = Desarrolladora.model_validate(desarrolladora)
+
+    db.add(desarrolladora_db)
+    db.commit()
+    db.refresh(desarrolladora_db)
+
+    return desarrolladora_db
+
+
+#GET: consultar una desarrolladora con sus videojuegos
+@desarrolladoras_router.get(
+    "/{id}",
+    response_model=DesarrolladoraReadConJuegos
+)
+async def get_desarrolladora_id(
+    id: Annotated[int, Path(gt=0)],
+    db: Session = Depends(get_db)
+):
+    desarrolladora_db = db.get(Desarrolladora, id)
+
+    if not desarrolladora_db:
+        raise HTTPException(
+            status_code=404,
+            detail="Desarrolladora no encontrada"
+        )
+
+    return desarrolladora_db
